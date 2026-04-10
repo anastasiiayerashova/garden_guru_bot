@@ -1,6 +1,10 @@
 from pydantic import BaseModel, Field
 
 
+class SemanticSearchInput(BaseModel):
+    query: str = Field(description='Пошуковий запит для енциклопедії садівництва (наприклад, "як лікувати плями на листі")')
+
+
 class PlantCareInput(BaseModel):
     plant_name: str = Field(description='Назва рослини (наприклад, "Томат", "Фіалка")')
 
