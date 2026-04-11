@@ -1,16 +1,24 @@
-from telegram import Update
-from telegram.ext import ContextTypes
+
+from aiogram import Router, types, F
+from aiogram.filters import Command
+from aiogram.types import Message
+from aiogram.enums import ParseMode
+from aiogram.fsm.context import FSMContext
+import logging
 
 from logger_config import setup_logging
+from services import get_agent_response
 
-logger = setup_logging()
+logger = logging.getLogger(__name__)
+router = Router()
 
 # Command handlers for Telegram bot
 
-async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+@router.message(Command('start'))
+async def start_command(message: Message):
     '''Надсилає привітальне повідомлення, коли користувач натискає /start'''
 
-    user_name = update.message.from_user.first_name
+    user_name = message.from_user.first_name
     welcome_text = (
         f'Привіт, {user_name}! 👋\n\n' \
         'Я — **GardenGuru** 🌿, твій персональний асистент-садівник та експерт із фітопатології.\n\n' \
@@ -22,35 +30,42 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         'Розкажи, що у тебе росте, або постав будь-яке садове питання. Чим допоможу сьогодні? 🌱'
     )
     try:
-        await update.message.reply_text(welcome_text, parse_mode='Markdown')
+        await message.answer(welcome_text, parse_mode=ParseMode.MARKDOWN)
 
     except Exception as e:
         logger.error(f'Помилка в команді /start: {e}', exc_info=True)
-        await update.message.reply_text('Вибачте, сталася помилка при відправці команди /start. Спробуйте ще раз.')
+        await message.reply_text('Вибачте, сталася помилка при відправці команди /start. Спробуйте ще раз.')
 
 
 
-async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+@router.message(Command('exit'))
+async def exit_command(message: Message, state: FSMContext):
     '''Очищує контекст та прощається з користувачем'''
     
-    current_session = context.user_data.get('session_id', 0)
-    context.user_data['session_id'] = current_session + 1
+    data = await state.get_data()
+    current_session = data.get('session_id', 0)
 
-    welcome_text = (
+    new_session = current_session + 1
+    await state.update_data(session_id=new_session)
+    
+
+    exit_text = (
         'Сесію завершено! 👋\n\n' \
         'Я очистив історію нашого листування. Моя "пам’ять" тепер чиста, як щойно зорана грядка. 🌿\n\n' \
         'Якщо знову знадобиться порада щодо рослин — просто напиши мені або натисни /start. Гарного дня! 🌱☀️'
+        f'Поточна сесія: {new_session}. Якщо знадобиться порада — пиши!'
     )
     try:
-        await update.message.reply_text(welcome_text)
+        await message.answer(exit_text)
 
     except Exception as e:
         logger.error(f'Помилка в команді /exit: {e}', exc_info=True)
-        await update.message.reply_text('Вибачте, сталася помилка при відправці команди /exit. Спробуйте ще раз.')
+        await message.reply_text('Вибачте, сталася помилка при відправці команди /exit. Спробуйте ще раз.')
 
 
 
-async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+@router.message(Command('help'))
+async def help_command(message: Message):
     '''Пояснює користувачеві можливості бота'''
 
     help_text = (
@@ -71,15 +86,16 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         '💡 *Порада: якщо у тебе є фото хворої рослини — опиши симптоми максимально детально!* 🌿'
     )
     try:
-        await update.message.reply_text(help_text, parse_mode='Markdown')
+        await message.answer(help_text, parse_mode=ParseMode.MARKDOWN)
 
     except Exception as e:
         logger.error(f'Помилка в команді /help: {e}', exc_info=True)
-        await update.message.reply_text('Вибачте, сталася помилка при відправці команди /help. Спробуйте ще раз.')
+        await message.reply_text('Вибачте, сталася помилка при відправці команди /help. Спробуйте ще раз.')
 
 
 
-async def calc_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+@router.message(Command('calc'))
+async def calc_command(message: Message):
     '''Пояснює, як користуватися калькулятором'''
 
     calc_help = (
@@ -93,15 +109,16 @@ async def calc_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         '💡 *Порада: вказуй цифри та одиниці виміру (метри, грами, літри), і я миттєво дам відповідь!*'
     )
     try:
-        await update.message.reply_text(calc_help, parse_mode='Markdown')
+        await message.answer(calc_help, parse_mode=ParseMode.MARKDOWN)
 
     except Exception as e:
         logger.error(f'Помилка в команді /calc: {e}', exc_info=True)
-        await update.message.reply_text('Вибачте, сталася помилка при відправці команди /calc. Спробуйте ще раз.')
+        await message.reply_text('Вибачте, сталася помилка при відправці команди /calc. Спробуйте ще раз.')
 
 
 
-async def guide_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+@router.message(Command('guide'))
+async def guide_command(message: Message):
     '''Пояснює, як працює пошук знань'''
 
     guide_help = (
@@ -114,12 +131,35 @@ async def guide_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         '🌿 Якщо я знайду інформацію в енциклопедії, я обов’язково пошлюся на неї у відповіді. Якщо ж питання загальне — відповім на основі своїх знань.'
     )
     try:
-        await update.message.reply_text(guide_help, parse_mode='Markdown')
+        await message.answer(guide_help, parse_mode=ParseMode.MARKDOWN)
 
     except Exception as e:
         logger.error(f'Помилка в команді /guide: {e}', exc_info=True)
-        await update.message.reply_text('Вибачте, сталася помилка при відправці команди /guide. Спробуйте ще раз.')
+        await message.reply_text('Вибачте, сталася помилка при відправці команди /guide. Спробуйте ще раз.')
 
 
-async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
-    logger.error(f'Exception while handling an update: {context.error}', exc_info=True)
+
+@router.message(F.text)
+async def handle_message(message: Message, state: FSMContext):
+    user_input = message.text
+    chat_id = message.chat.id
+
+    data = await state.get_data()
+    session_id = data.get('session_id', 0)
+
+    await message.bot.send_chat_action(chat_id=chat_id, action='typing')
+
+    try:
+        response = await get_agent_response(user_input, chat_id, session_id)
+
+        if response:
+            logger.info(f'Відповідь агента для чату {chat_id}: {response[:50]}...')
+            await message.answer(response, parse_mode=ParseMode.MARKDOWN)
+
+        else:
+            logger.warning('Отримано порожню відповідь від агента.')
+            await message.reply_text('Вибачте, не вдалося отримати відповідь. Спробуйте ще раз.')
+
+    except Exception as e:
+        logger.error(f'Помилка при отриманні відповіді: {e}', exc_info=True)
+        await message.reply_text('Вибачте, сталася внутрішня помилка. Спробуйте пізніше.')
