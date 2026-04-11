@@ -16,21 +16,22 @@ load_dotenv()
 
 
 # create vector store + upload file
-client = OpenAI()
+# client = OpenAI()
 
-vector_store = client.vector_stores.create(
-    name='garden_guru_vector_store',
-)
+# vector_store = client.vector_stores.create(
+#     name='garden_guru_vector_store',
+# )
 
-client.vector_stores.files.upload_and_poll(
-    vector_store_id=vector_store.id,
-    file=open('knowledge_db.txt', 'rb')
-)
+# client.vector_stores.files.upload_and_poll(
+#     vector_store_id=vector_store.id,
+#     file=open('knowledge_db.txt', 'rb')
+# )
 
 
 # model + params
 chat_model = ChatOpenAI(model=BotSettings.MODEL_NAME.value,
-                        temperature=BotSettings.TEMPERATURE.value)
+                        temperature=BotSettings.TEMPERATURE.value
+                        )
 
 # agent + tools
 memory = MemorySaver()

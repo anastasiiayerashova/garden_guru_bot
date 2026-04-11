@@ -4,33 +4,42 @@ from schemas import SemanticSearchInput
 import os
 from langchain_core.tools import tool
 from dotenv import load_dotenv
-from openai import OpenAI
+import logging
+from openai import AsyncOpenAI
 
 
+logger = logging.getLogger(__name__)
 load_dotenv()
 
-client = OpenAI()
+client = AsyncOpenAI()
 VECTOR_STORE_ID = os.getenv('VECTOR_STORE_ID')
 
 
 @tool(args_schema=SemanticSearchInput)
-def semantic_search(query: str) -> str:
+async def semantic_search(query: str) -> str:
     '''
     Шукає розширену інформацію про рослини, шкідників, хвороби та календар посадки в базі знань.
     Використовуйте цей інструмент, коли користувач ставить загальні питання про догляд, 
     опис симптомів хвороб або шукає поради щодо садівництва, яких немає в інших інструментах.
     '''
-    
-    results = client.vector_stores.search(
-        vector_store_id=VECTOR_STORE_ID,
-        query=query
-    )
 
-    if not results.data:
-        return 'У базі знань не знайдено інформації за цим запитом.'
-    
-    content = results.data[0].content
-    return f'Ось що знайдено в енциклопедії:\n{content}'
+    try:
+        results = await client.vector_stores.search(
+            vector_store_id=VECTOR_STORE_ID,
+            query=query,
+            max_num_results=1
+        )
+
+        if not results.data:
+            return 'У базі знань не знайдено інформації за цим запитом.'
+
+        content = results.data[0].content
+        return f'Ось що знайдено в енциклопедії:\n{content}'
+
+    except Exception as e:
+        logger.error(f'Ошибка поиска в Vector Store: {e}', exc_info=True)
+        return 'Вибачте, сталася помилка при зверненні до бази знань.'
+            
 
 
 @tool(args_schema=FertilizerCalculatorInput)

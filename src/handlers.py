@@ -34,7 +34,7 @@ async def start_command(message: Message):
 
     except Exception as e:
         logger.error(f'Помилка в команді /start: {e}', exc_info=True)
-        await message.reply_text('Вибачте, сталася помилка при відправці команди /start. Спробуйте ще раз.')
+        await message.answer('Вибачте, сталася помилка при відправці команди /start. Спробуйте ще раз.')
 
 
 
@@ -60,7 +60,7 @@ async def exit_command(message: Message, state: FSMContext):
 
     except Exception as e:
         logger.error(f'Помилка в команді /exit: {e}', exc_info=True)
-        await message.reply_text('Вибачте, сталася помилка при відправці команди /exit. Спробуйте ще раз.')
+        await message.answer('Вибачте, сталася помилка при відправці команди /exit. Спробуйте ще раз.')
 
 
 
@@ -90,7 +90,7 @@ async def help_command(message: Message):
 
     except Exception as e:
         logger.error(f'Помилка в команді /help: {e}', exc_info=True)
-        await message.reply_text('Вибачте, сталася помилка при відправці команди /help. Спробуйте ще раз.')
+        await message.answer('Вибачте, сталася помилка при відправці команди /help. Спробуйте ще раз.')
 
 
 
@@ -113,7 +113,7 @@ async def calc_command(message: Message):
 
     except Exception as e:
         logger.error(f'Помилка в команді /calc: {e}', exc_info=True)
-        await message.reply_text('Вибачте, сталася помилка при відправці команди /calc. Спробуйте ще раз.')
+        await message.answer('Вибачте, сталася помилка при відправці команди /calc. Спробуйте ще раз.')
 
 
 
@@ -135,7 +135,7 @@ async def guide_command(message: Message):
 
     except Exception as e:
         logger.error(f'Помилка в команді /guide: {e}', exc_info=True)
-        await message.reply_text('Вибачте, сталася помилка при відправці команди /guide. Спробуйте ще раз.')
+        await message.answer('Вибачте, сталася помилка при відправці команди /guide. Спробуйте ще раз.')
 
 
 
@@ -158,8 +158,8 @@ async def handle_message(message: Message, state: FSMContext):
 
         else:
             logger.warning('Отримано порожню відповідь від агента.')
-            await message.reply_text('Вибачте, не вдалося отримати відповідь. Спробуйте ще раз.')
+            await message.answer('Вибачте, не вдалося отримати відповідь. Спробуйте ще раз.')
 
     except Exception as e:
         logger.error(f'Помилка при отриманні відповіді: {e}', exc_info=True)
-        await message.reply_text('Вибачте, сталася внутрішня помилка. Спробуйте пізніше.')
+        await message.answer('Вибачте, сталася внутрішня помилка. Спробуйте пізніше.')
