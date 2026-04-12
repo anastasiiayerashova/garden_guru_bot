@@ -10,7 +10,7 @@ import os
 
 from logger_config import setup_logging
 from services import get_agent_response
-from vision_services import identify_plant
+from vision_services import identify_plant, identify_disease
 
 logger = logging.getLogger(__name__)
 router = Router()
@@ -55,7 +55,7 @@ async def exit_command(message: Message, state: FSMContext):
     
     exit_text = (
         'Сесію завершено! 👋\n\n' \
-        'Я очистив історію нашого листування. Моя "пам’ять" тепер чиста, як щойно зорана грядка. 🌿\n\n' \
+        "Я очистив історію нашого листування. Моя 'пам’ять' тепер чиста, як щойно зорана грядка. 🌿\n\n" \
         'Якщо знову знадобиться порада щодо рослин — просто напиши мені або натисни /start. Гарного дня! 🌱☀️'
         f'Поточна сесія: {new_session}. Якщо знадобиться порада — пиши!'
     )
@@ -80,12 +80,13 @@ async def help_command(message: Message):
         '✨ **Що я вмію:**\n' \
         '• **Енциклопедія:** Запитай про догляд, наприклад: `Як поливати фіалку?` — я знайду це у своїй базі знань. 📖\n' \
         '• **Фото-ідентифікація:** Надішли мені фото рослини, і я розпізнаю її вид за допомогою нейромережі **Pl@ntNet API**. 📸\n'
-        '• **Діагностика:** Опиши проблему, наприклад: `Чому жовтіє листя у томатів?` — я допоможу знайти причину. 🔍\n' \
-        '• **Розрахунки:** Напиши `Скільки добрива потрібно на 5 кв.м?` — і я використаю калькулятор. 🧮\n' \
-        '• **Календар:** Запитай `Коли садити помідори?`, щоб отримати оптимальні дати. 📅\n\n' \
+        '• **Діагностика:** Опиши проблему, наприклад: \n`Чому жовтіє листя у томатів?` — я допоможу знайти причину. 🔍\n' \
+        '• **Розрахунки:** Напиши: \n`Скільки добрива потрібно на 5 кв.м?` — і я використаю калькулятор. 🧮\n' \
+        '• **Календар:** Запитай: \n`Коли садити помідори?`, щоб отримати оптимальні дати. 📅\n\n' \
         '📝 **Команди:**\n' \
         '/start — почати знайомство та роботу\n' \
         '/identify — як розпізнати рослину за фото\n'
+        '/disease — як провести діагностику хвороби за фото\n'
         '/calc — як користуватися калькулятором добрив\n' \
         '/guide — отримати поради щодо діагностики рослин\n' \
         '/exit — очистити історію та почати з чистого листа\n' \
@@ -174,6 +175,22 @@ async def identify_command(message: Message):
 
 
 
+@router.message(Command('disease'))
+async def disease_command(message: Message):
+    '''Пояснює, як працює діагностика хвороб'''
+    text = (
+        '🏥 **Діагностика хвороб за фото**\n\n'
+        'Я допоможу визначити, що з твоїм зеленим другом, використовуючи професійні алгоритми **Pl@ntNet API**! 🌿\n\n'
+        '✨ **Як це працює:**\n'
+        '1. Надішли фото ураженої ділянки (плями на листі, наліт, шкідники).\n'
+        '2. Нейромережа **Pl@ntNet** проаналізує візуальні симптоми серед тисяч відомих патологій.\n'
+        '3. Я отримаю результат і надам тобі поради щодо лікування з власної бази знань. 📖\n\n'
+        '💡 **Порада:** роби фото при гарному освітленні та максимально близько до проблеми (макрозйомка), щоб я міг розгледіти деталі.'
+    )
+    await message.answer(text, parse_mode=ParseMode.MARKDOWN)
+
+
+
 @router.message(F.text)
 async def handle_message(message: Message, state: FSMContext):
     user_input = message.text
@@ -214,12 +231,24 @@ async def handle_photo(message: Message, state: FSMContext):
         await message.bot.download_file(file_info.file_path, image_name)
 
         identification_result = await identify_plant(image_name)
-        await status_msg.edit_text(f'✅ {identification_result}\n\nШукаю поради в базі знань GardenGuru... 📖')
+        await status_msg.edit_text(f'✅ {identification_result}\n\nТепер перевіряю на наявність хвороб... 🏥')
+
+        disease_result = await identify_disease(image_name)
+
+        await status_msg.edit_text(
+            f'✅ {identification_result}\n'
+            f'{disease_result}\n\n'
+            f'Звертаюся до експертної бази знань за порадами... 📖'
+        )
 
         prompt = (
-            f'Я завантажив фото. Pl@ntNet ідентифікував це як: {identification_result}. '
-            f'Використовуй ці дані та свою базу знань (semantic_search), щоб надати коротку '
-            f'довідку про догляд та можливі хвороби цієї рослини.'
+            f'Користувач надіслав фото. Аналіз Pl@ntNet:\n'
+            f'- Вид рослини: {identification_result}\n'
+            f'- Ймовірна хвороба: {disease_result}\n\n'
+            'Використовуй ці дані та інструмент semantic_search, щоб надати:'
+            '1. Коротку довідку про догляд за цією рослиною.'
+            '2. Підтвердження або уточнення діагнозу хвороби.'
+            '3. Конкретні кроки для лікування (препарати або догляд).'
         )
 
         agent_answer = await get_agent_response(
@@ -244,6 +273,7 @@ async def set_commands(bot):
         BotCommand(command='start', description='Почати роботу з ботом'),
         BotCommand(command='help', description='Показати довідку по використанню бота'),
         BotCommand(command='identify', description='Дізнатися, як розпізнати рослину за фото'),
+        BotCommand(command='disease', description='Діагностика хвороби 🏥'),
         BotCommand(command='calc', description='Дізнатися, як користуватися калькулятором'),
         BotCommand(command='guide', description='Отримати поради щодо догляду та діагностики'),
         BotCommand(command='exit', description='Очистити історію та почати з чистого листа')
