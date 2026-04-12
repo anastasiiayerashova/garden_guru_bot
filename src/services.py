@@ -1,6 +1,8 @@
 import logging
 from init import agent
 
+
+
 async def get_agent_response(user_text: str, chat_id: int, session_id: int = 0) -> str:
     config = {'configurable': {'thread_id': f"{str(chat_id)}_{session_id}"}}
 

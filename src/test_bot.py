@@ -3,6 +3,7 @@ from init import agent
 from langchain_core.messages import HumanMessage
 
 
+
 TEST_CASES = [
     ('Привіт, я Настя', False),
     ('Як часто поливати фіалку?', True),
@@ -45,6 +46,8 @@ async def test_garden_guru_responses():
             print(f'✅ Бот відповів без залучення бази (як і очікувалось).')
             
         assert len(content) > 10, '❌ Помилка: Відповідь занадто коротка.'
+
+
 
 if __name__ == '__main__':
     import asyncio

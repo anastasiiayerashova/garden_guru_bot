@@ -2,6 +2,7 @@ import logging
 import colorlog
 
 
+
 def setup_logging():
     logger = logging.getLogger() 
     
@@ -20,6 +21,7 @@ def setup_logging():
             'CRITICAL': 'red,bg_white',
         }
     ))
+    
     logger = logging.getLogger()
     logger.addHandler(handler)
     logger.setLevel(logging.INFO)

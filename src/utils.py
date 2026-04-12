@@ -4,6 +4,8 @@ from enum import Enum
 
 load_dotenv()
 
+
+
 class BotSettings(Enum):
     SYSTEM_PROMPT = (
         '''
@@ -26,5 +28,6 @@ class BotSettings(Enum):
         3. Пріоритет: народні методи/біопрепарати -> хімія (тільки з інструкцією).
        '''
 )
+    
     MODEL_NAME = os.getenv('MODEL_NAME')
     TEMPERATURE = float(os.getenv('TEMPERATURE'))

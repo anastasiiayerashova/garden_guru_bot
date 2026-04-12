@@ -8,12 +8,12 @@ from aiogram.types import BotCommand
 import logging
 import os
 
-from logger_config import setup_logging
 from services import get_agent_response
 from vision_services import identify_plant, identify_disease
 
 logger = logging.getLogger(__name__)
 router = Router()
+
 
 # command handlers for Telegram bot
 

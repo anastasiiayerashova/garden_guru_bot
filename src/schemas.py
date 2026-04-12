@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 
 
+
 class SemanticSearchInput(BaseModel):
     query: str = Field(description='Пошуковий запит для енциклопедії садівництва (наприклад, "як лікувати плями на листі")')
 
