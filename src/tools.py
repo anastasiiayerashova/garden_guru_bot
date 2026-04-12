@@ -1,5 +1,4 @@
-from schemas import FertilizerCalculatorInput
-from schemas import SemanticSearchInput
+from schemas import FertilizerCalculatorInput, SemanticSearchInput
 
 import os
 from langchain_core.tools import tool
@@ -13,6 +12,7 @@ load_dotenv()
 
 client = AsyncOpenAI()
 VECTOR_STORE_ID = os.getenv('VECTOR_STORE_ID')
+
 
 
 @tool(args_schema=SemanticSearchInput)
@@ -63,5 +63,7 @@ def fertilizer_calculator(area_m2: float, plant_type: str = 'загальний'
             f'Для ділянки площею **{area_m2} м²** під **{plant_type}** '
             f'вам знадобиться приблизно **{total_amount} г** комплексного добрива.\n'
             f'*Рекомендація: рівномірно розподіліть добриво перед поливом або дощем.*')
+
+
 
 tools_list = [semantic_search, fertilizer_calculator]
