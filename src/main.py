@@ -27,10 +27,18 @@ async def main():
         logger.error('Помилка: TELEGRAM_TOKEN не знайдено в .env файлі.')
         return
 
-    bot = Bot(
-        token=telegram_token, 
-        default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN)
-    )
+    try:
+        bot = Bot(
+            token=telegram_token,
+            default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN)
+        )
+        
+        bot_info = await bot.get_me()
+        logger.info(f'🤖 Бот авторизований: @{bot_info.username} (ID: {bot_info.id})')
+        
+    except Exception as e:
+        logger.error(f'❌ Помилка авторизації бота: {e}', exc_info=True)
+        return
 
     storage = MemoryStorage()
 
@@ -56,7 +64,6 @@ async def main():
 
     try:
         await dp.start_polling(bot)
-        logger.info('✅ GardenGuru успішно запущено')
 
     except Exception as e:
         logger.error(f'Помилка при запуску бота: {e}', exc_info=True)
@@ -64,6 +71,7 @@ async def main():
     finally:
         await bot.session.close()
         logger.info("✅ Сесію завершено, бот зупинено")
+
 
     
 if __name__ == '__main__':
