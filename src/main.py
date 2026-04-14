@@ -10,11 +10,12 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from logger_config import setup_logging
 from handlers import router as handlers_router
 from handlers import set_commands
+from middlewares import AntiFloodMiddleware
 
 
 load_dotenv()
 setup_logging()
-logger = setup_logging()
+logger = logging.getLogger(__name__)
 
 
 
@@ -32,6 +33,9 @@ async def main():
 
     storage = MemoryStorage()
     dp = Dispatcher(storage=storage)
+    
+    # користувач може писати не частіше ніж раз на 3 секунди
+    dp.message.middleware(AntiFloodMiddleware(time_limit=3))
 
     dp.include_router(handlers_router)
 

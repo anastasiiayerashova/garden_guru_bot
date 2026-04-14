@@ -25,3 +25,4 @@ def setup_logging():
     logger = logging.getLogger()
     logger.addHandler(handler)
     logger.setLevel(logging.INFO)
+    return logger

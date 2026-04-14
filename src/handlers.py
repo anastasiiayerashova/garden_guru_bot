@@ -5,8 +5,8 @@ from aiogram.types import Message
 from aiogram.enums import ParseMode
 from aiogram.fsm.context import FSMContext
 from aiogram.types import BotCommand
-import logging
 import os
+import logging
 
 from services import get_agent_response
 from vision_services import identify_plant, identify_disease
@@ -245,10 +245,14 @@ async def handle_photo(message: Message, state: FSMContext):
             f'Користувач надіслав фото. Аналіз Pl@ntNet:\n'
             f'- Вид рослини: {identification_result}\n'
             f'- Ймовірна хвороба: {disease_result}\n\n'
-            'Використовуй ці дані та інструмент semantic_search, щоб надати:'
-            '1. Коротку довідку про догляд за цією рослиною.'
-            '2. Підтвердження або уточнення діагнозу хвороби.'
-            '3. Конкретні кроки для лікування (препарати або догляд).'
+            'Використовуй свої внутрішні знання, щоб підтвердити або спростувати цей діагноз.'
+            'Якщо API повернуло "Рослину не вдалося визначити. Спробуйте інше зображення." або "Вибачте, не вдалося визначити хворобу. Спробуйте ще раз пізніше.", ввічливо скажи що на фото імовірно не рослина'
+            'Якщо API повернуло скорочену назву шкідника (наприклад, LPTNDE), розшифруй її та дай рекомендації по боротьбі.'
+            'ВИМОГА: Знайди в базі знань GardenGuru правила догляду для цієї рослини.'
+            'НЕ використовуй semantic_search для діагностики хвороби, спирайся на свої знання про хвороби рослин.'
+            "1. Розшифруй латинську назву або технічний код патології.\n"
+            "2. На основі своїх знань поясни користувачеві, що це і як лікувати.\n"
+            "3. Якщо це шкідник, опиши його життєвий цикл і засоби боротьби."
         )
 
         agent_answer = await get_agent_response(

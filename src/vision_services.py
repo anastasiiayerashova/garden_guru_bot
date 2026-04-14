@@ -20,6 +20,7 @@ async def identify_plant(image_path: str) -> str:
     '''
 
     try:
+        logger.info(f'📤 Відправка запиту на /identify: {image_path}')
         async with aiohttp.ClientSession() as session:
             data = aiohttp.FormData()
 
@@ -27,6 +28,7 @@ async def identify_plant(image_path: str) -> str:
                 data.add_field('images', f)
 
                 async with session.post(PLANT_URL, data=data) as response:
+                    logger.info(f'📡 Статус відповіді PlantNet: {response.status}')
 
                     if response.status != 200:
                         logger.error(f'Помилка при зверненні до PlantNet API: {response.status}')
@@ -35,6 +37,7 @@ async def identify_plant(image_path: str) -> str:
                     result = await response.json()
 
                     if not result.get('results'):
+                        logger.warning(f'⚠️ Рослину не знайдено у базі Pl@ntNet для файлу {image_path}')
                         return 'Рослину не вдалося визначити. Спробуйте інше зображення.'
                     
                     best_match = result['results'][0]
@@ -45,6 +48,8 @@ async def identify_plant(image_path: str) -> str:
                     family = species_data.get('family', {}).get('scientificNameWithoutAuthor', 'Unknown family')
                     confidence = best_match.get('score', 0)
                     
+                    logger.info(f'✅ Успішно визначено: {scientific_name} ({confidence:.2%})')
+
                     return (f'🌿 **ВИЗНАЧЕННЯ РОСЛИНИ:**\n'
                             f'На зображенні ймовірно *{common_name}* '
                             f'👪 Родина: *{family}*\n'
@@ -64,6 +69,7 @@ async def identify_disease(image_path: str) -> str:
     '''
 
     try:
+        logger.info(f'📤 Відправка запиту на /diseases/identify: {image_path}')
         async with aiohttp.ClientSession() as session:
             data = aiohttp.FormData()
 
@@ -71,6 +77,7 @@ async def identify_disease(image_path: str) -> str:
                 data.add_field('images', f)
 
                 async with session.post(PLANT_URL_DISEASES, data=data) as response:
+                    logger.info(f'📡 Статус відповіді Disease PlantNet: {response.status}')
 
                     if response.status != 200:
                         logger.error(f'Помилка при зверненні до PlantNet API для хвороб: {response.status}')
@@ -79,12 +86,15 @@ async def identify_disease(image_path: str) -> str:
                     result = await response.json()
 
                     if not result.get('results'):
+                        logger.warning('ℹ️ Хвороб на фото не виявлено.')
                         return 'Хворобу не вдалося визначити. Спробуйте інше зображення.'
                     
                     best_match = result['results'][0]
                     disease_name = best_match.get('name', 'невідома хвороба')
                     confidence = best_match.get('score', 0)
                     
+                    logger.info(f'🦠 Знайдено хворобу: {disease_name} (Conf: {confidence:.2%})')
+
                     return (f'⚠️ **ВИЗНАЧЕННЯ ХВОРОБИ:**\n'
                             f'На зображенні ймовірно *{disease_name}*, '
                             f'з точністю *{confidence*100:.2f}%*.')
