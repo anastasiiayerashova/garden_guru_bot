@@ -37,7 +37,7 @@ async def semantic_search(query: str) -> str:
         return f'Ось що знайдено в енциклопедії:\n{content}'
 
     except Exception as e:
-        logger.error(f'Ошибка поиска в Vector Store: {e}', exc_info=True)
+        logger.error(f'Помилка при пошуку в Vector Store: {e}', exc_info=True)
         return 'Вибачте, сталася помилка при зверненні до бази знань.'
             
 

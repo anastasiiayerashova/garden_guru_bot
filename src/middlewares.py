@@ -4,6 +4,10 @@ from aiogram import BaseMiddleware
 from aiogram.types import Message
 from cachetools import TTLCache
 
+
+
+# користувач може писати не частіше ніж раз на 3 секунди
+
 class AntiFloodMiddleware(BaseMiddleware):
     def __init__(self, time_limit: int = 5) -> None:
         self.limit = TTLCache(maxsize=10_000, ttl=time_limit)

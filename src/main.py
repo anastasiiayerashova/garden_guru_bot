@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 async def main():
+    logger.info("🎬 Підготовка до запуску GardenGuru...")
     telegram_token = os.getenv('TELEGRAM_TOKEN')
 
     if not telegram_token:
@@ -32,9 +33,11 @@ async def main():
     )
 
     storage = MemoryStorage()
+
     dp = Dispatcher(storage=storage)
     
-    # користувач може писати не частіше ніж раз на 3 секунди
+    logger.info("⚙️ Реєстрація middleware та router...")
+
     dp.message.middleware(AntiFloodMiddleware(time_limit=3))
 
     dp.include_router(handlers_router)
@@ -48,17 +51,19 @@ async def main():
         logger.error(f'Помилка при встановленні команд: {e}', exc_info=True)
 
 
-    logger.info("🚀 Запуск GardenGuru в режимі Polling...")
+    logger.info("🚀 Запуск GardenGuru в режимі polling...")
 
 
     try:
         await dp.start_polling(bot)
+        logger.info('✅ GardenGuru успішно запущено')
 
     except Exception as e:
         logger.error(f'Помилка при запуску бота: {e}', exc_info=True)
     
     finally:
         await bot.session.close()
+        logger.info("✅ Сесію завершено, бот зупинено")
 
     
 if __name__ == '__main__':
@@ -67,3 +72,6 @@ if __name__ == '__main__':
 
     except (KeyboardInterrupt):
         logger.info('Бот зупинено вручну (KeyboardInterrupt).')
+
+    except Exception as e:
+        logger.critical(f'💥 Непередбачувана помилка при запуску: {e}', exc_info=True)
