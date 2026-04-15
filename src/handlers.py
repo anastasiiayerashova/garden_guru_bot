@@ -7,6 +7,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import BotCommand
 import os
 import logging
+import time
 
 from services import get_agent_response
 from vision_services import identify_plant, identify_disease
@@ -35,6 +36,7 @@ async def start_command(message: Message):
     )
 
     try:
+        logger.info('handler /start')
         await message.answer(welcome_text, parse_mode=ParseMode.MARKDOWN)
 
     except Exception as e:
@@ -61,6 +63,7 @@ async def exit_command(message: Message, state: FSMContext):
     )
 
     try:
+        logger.info('handler /exit')
         await message.answer(exit_text)
 
     except Exception as e:
@@ -95,6 +98,7 @@ async def help_command(message: Message):
     )
 
     try:
+        logger.info('handler /help')
         await message.answer(help_text, parse_mode=ParseMode.MARKDOWN)
 
     except Exception as e:
@@ -119,6 +123,7 @@ async def calc_command(message: Message):
     )
 
     try:
+        logger.info('handler /calc')
         await message.answer(calc_help, parse_mode=ParseMode.MARKDOWN)
 
     except Exception as e:
@@ -142,6 +147,7 @@ async def guide_command(message: Message):
     )
 
     try:
+        logger.info('handler /guide')
         await message.answer(guide_help, parse_mode=ParseMode.MARKDOWN)
 
     except Exception as e:
@@ -167,6 +173,7 @@ async def identify_command(message: Message):
     )
 
     try:
+        logger.info('handler /identify')
         await message.answer(identify_text, parse_mode=ParseMode.MARKDOWN)
 
     except Exception as e:
@@ -187,7 +194,14 @@ async def disease_command(message: Message):
         '3. Я отримаю результат і надам тобі поради щодо лікування з власної бази знань. 📖\n\n'
         '💡 **Порада:** роби фото при гарному освітленні та максимально близько до проблеми (макрозйомка), щоб я міг розгледіти деталі.'
     )
-    await message.answer(text, parse_mode=ParseMode.MARKDOWN)
+    
+    try:
+        logger.info('handler /disease')
+        await message.answer(text, parse_mode=ParseMode.MARKDOWN)
+
+    except Exception as e:
+        logger.error(f'Помилка в команді /disease: {e}', exc_info=True)
+        await message.answer('Вибачте, сталася помилка при відправці команди /disease. Спробуйте ще раз.')
 
 
 
@@ -195,45 +209,69 @@ async def disease_command(message: Message):
 async def handle_message(message: Message, state: FSMContext):
     user_input = message.text
     chat_id = message.chat.id
+    user_id = message.from_user.id
 
     data = await state.get_data()
     session_id = data.get('session_id', 0)
 
+    logger.info(f'USER[{user_id}] запит: "{user_input[:30]}..." (Session: {session_id})')
+
     await message.bot.send_chat_action(chat_id=chat_id, action='typing')
+
+    start_time = time.perf_counter()
 
     try:
         response = await get_agent_response(user_input, chat_id, session_id)
 
+        duration = time.perf_counter() - start_time
+
         if response:
-            logger.info(f'Відповідь агента для чату {chat_id}: {response[:50]}...')
+            logger.info(f'Відповідь агента для чату {chat_id} | USER[{user_id}] | Time: {duration:.2f}с | Response: {response[:50]}...')
             await message.answer(response, parse_mode=ParseMode.MARKDOWN)
 
         else:
-            logger.warning('Отримано порожню відповідь від агента.')
+            logger.warning(f'Отримано порожню відповідь від агента для USER[{user_id}].')
             await message.answer('Вибачте, не вдалося отримати відповідь. Спробуйте ще раз.')
 
     except Exception as e:
-        logger.error(f'Помилка при отриманні відповіді: {e}', exc_info=True)
+        duration = time.perf_counter() - start_time
+        logger.error(f'Для USER[{user_id}] помилка через {duration:.2f}с при отриманні відповіді: {e}', exc_info=True)
         await message.answer('Вибачте, сталася внутрішня помилка. Спробуйте пізніше.')
 
 
 
 @router.message(F.photo)
 async def handle_photo(message: Message, state: FSMContext):
+    user_id = message.from_user.id
+    chat_id = message.chat.id
     photo = message.photo[-1]
+
+    logger.info(f'USER[{user_id}] надіслав фото на аналіз. File_id: {photo.file_id}')
+    start_total = time.perf_counter()
+
     file_info = await message.bot.get_file(photo.file_id)
 
-    image_name = f'temp_{photo.file_id}.jpg'
+    image_name = f'temp_{user_id}_{photo.file_id}.jpg'
 
     status_msg = await message.answer('🔍 Дивлюсь на фото... Зараз розпізнаю рослину.')
 
     try:
         await message.bot.download_file(file_info.file_path, image_name)
+        logger.debug(f'USER[{user_id}] фото завантажено як {image_name}')
+
+        start_step = time.perf_counter()
 
         identification_result = await identify_plant(image_name)
+
+        logger.info(f'USER[{user_id}] ідентифікація рослини ({time.perf_counter() - start_step:.2f}с): {identification_result}')
+
         await status_msg.edit_text(f'✅ {identification_result}\n\nТепер перевіряю на наявність хвороб... 🏥')
 
+        start_step = time.perf_counter()
+
         disease_result = await identify_disease(image_name)
+
+        logger.info(f'USER[{user_id}] діагностика хвороби ({time.perf_counter() - start_step:.2f}с): {disease_result}')
 
         await status_msg.edit_text(
             f'✅ {identification_result}\n'
@@ -255,20 +293,30 @@ async def handle_photo(message: Message, state: FSMContext):
             "3. Якщо це шкідник, опиши його життєвий цикл і засоби боротьби."
         )
 
+        start_step = time.perf_counter()
+
         agent_answer = await get_agent_response(
             user_text=prompt, 
             chat_id=message.chat.id
         )
 
+        duration_agent = time.perf_counter() - start_step
+        logger.info(f'USER[{user_id}] відповідь агента отримана за {duration_agent:.2f}с')
+
         await status_msg.edit_text(agent_answer, parse_mode='Markdown')
 
+        total_duration = time.perf_counter() - start_total
+        logger.info(f'USER[{user_id}] ПОВНИЙ ЦИКЛ ОБРОБКИ ФОТО ЗАВЕРШЕНО за {total_duration:.2f}с')
+
     except Exception as e:
+        total_duration = time.perf_counter() - start_total
+        logger.error(f'USER[{user_id}] помилка при обробці фото через {total_duration:.2f}с: {e}', exc_info=True)
         await status_msg.edit_text('❌ Вибачте, не вдалося проаналізувати фото. Спробуйте ще раз або напишіть назву текстом.')
-        logger.error(f'Помилка при обробці фото: {e}', exc_info=True)
 
     finally:
         if os.path.exists(image_name):
             os.remove(image_name)
+            logger.debug(f'USER[{user_id}] тимчасовий файл {image_name} видалено')
 
 
 

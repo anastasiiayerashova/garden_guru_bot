@@ -43,13 +43,13 @@ TEST_CASES = [
 
 @pytest.mark.asyncio
 async def test_garden_guru_responses():
-    # print('\n🚀 Запуск автоматичних тестів GardenGuru...\n')
-    logger.info(f'🚀 Запуск автоматичних тестів GardenGuru...')
+    logger.info('🚀 Запуск автоматичних тестів GardenGuru...')
     
     for query, expected_rag, key_word in TEST_CASES:
         logger.info(f'🔍 Тестуємо запит: "{query}"')
         
         config = {'configurable': {'thread_id': 'test_session'}, 'recursion_limit': 10}
+
         try:
             response = await agent.ainvoke(
                 {'messages': [HumanMessage(content=query)]}, 
@@ -67,6 +67,7 @@ async def test_garden_guru_responses():
                 assert not has_rag_trigger, f'❌ Помилка: Зайвий виклик бази для "{query}"'
 
             if key_word:
+                
                 if isinstance(key_word, list):
                     found = any(word.lower() in content.lower() for word in key_word)
                     assert found, f'❌ Помилка: У відповіді немає "{key_word}". Текст: {content[:50]}...'
