@@ -27,12 +27,13 @@ async def main():
         logger.error('Помилка: TELEGRAM_TOKEN не знайдено в .env файлі.')
         return
 
+
     try:
         bot = Bot(
             token=telegram_token,
             default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN)
         )
-        
+
         bot_info = await bot.get_me()
         logger.info(f'🤖 Бот авторизований: @{bot_info.username} (ID: {bot_info.id})')
         
