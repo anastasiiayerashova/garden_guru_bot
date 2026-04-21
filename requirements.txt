@@ -10,3 +10,4 @@ magic-filter==1.0.12
 openai==2.29.0
 pytest==9.0.3
 python-dotenv==1.2.2
+cachetools==5.5.0
