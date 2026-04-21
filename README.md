@@ -57,7 +57,7 @@
 - **Networking:** `aiohttp` (Asynchronous HTTP Client)
 - **Pydantic** — для валідації аргументів інструментів.
 - **Colorlog** — для візуально зрозумілої розробки та дебагу.
-
+- **LangGraph MemorySaver** — забезпечує персистентність діалогу (Checkpointer), дозволяючи боту зберігати контекст розмови в межах thread_id.
 ---
 
 ## 💻 Як запустити
