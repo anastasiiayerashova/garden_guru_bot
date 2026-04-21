@@ -106,53 +106,67 @@
 
 ---
 
-graph TD
-%% Define Nodes (Elements)
-Start((🆕 Користувач)) -->|Надсилає повідомлення| InputMsg[Отримання запиту в Aiogram]
+## Схема життєвого циклу запиту в GardenGuru
 
-    %% Router Logic
-    InputMsg -->|Аналіз типу повідомлення| Router{Router / handlers.py}
+sequenceDiagram
+participant U as Користувач (Telegram)
+participant B as Aiogram Bot (main.py)
+participant A as LangGraph Agent (init.py)
+participant T as Tools (tools.py)
+participant V as Vision Service (Pl@ntNet)
+participant DB as Vector Store (OpenAI)
 
-    %% Branch 1: Commands
-    Router -->|Команда /start, /help, /calc| SimpleResp[Відправка готового тексту]
-    SimpleResp --> EndOutput
+    U->>B: Надсилає повідомлення (текст або фото)
 
-    %% Branch 2: Photo (Vision)
-    Router -->|Фото рослини| VisionFlow[Завантаження фото]
-    VisionFlow --> PlantNetPlant[Pl@ntNet API: Визначення виду]
-    PlantNetPlant --> PlantNetDisease[Pl@ntNet API: Діагностика хвороби]
-    PlantNetDisease --> PrepareAgentPrompt[Формування контексту для Агента]
-    PrepareAgentPrompt --> AgentNode
-
-    %% Branch 3: Text Request (LLM)
-    Router -->|Текстове питання| AgentNode
-
-    %% LLM Core Logic (ReAct Chain via LangGraph)
-    subgraph AI_AGENT [🧠 Ядро Агента (GPT-5.4-nano)]
-        AgentNode[Аналіз запиту] -->|Мислить: Які інструменти потрібні?| ToolSelection{Вибір Інструменту}
+    alt Якщо надіслано фото
+        B->>V: Запит на ідентифікацію виду та хвороби
+        V-->>B: Результат (назва рослини + код патології)
+        B->>A: Текст + результати аналізу фото
+    else Якщо надіслано текст
+        B->>A: Передача тексту (user_input)
     end
 
-    %% Tools Interaction
-    ToolSelection -->|Потрібен RAG / знання| SemanticSearch[Semantic Search / Vector Store]
-    ToolSelection -->|Потрібні розрахунки| CalcTool[Садовий Калькулятор]
-    ToolSelection -->|Власні знання / Не по темі| GenerateResp[Формування фінальної відповіді]
+    Note over A: Цикл "Мислення" (Reasoning)
 
-    %% Back to Agent
-    SemanticSearch -->|Отримано знання| AgentNode
-    CalcTool -->|Результат розрахунку| AgentNode
-    GenerateResp -->|Готова відповідь| OutputMsg[Асинхронна відповідь Aiogram]
+    A->>A: Чи потрібні додаткові інструменти?
 
-    %% Final Outputs
-    OutputMsg --> EndOutput((📤 Відповідь в Telegram))
+    opt Виклик інструментів (Acting)
+        A->>T: Виклик semantic_search або fertilizer_calc
+        T->>DB: Пошук у базі знань (якщо обрано пошук)
+        DB-->>T: Рлевантний контент
+        T-->>A: Повернення результату інструменту
+    end
 
-    %% Styling (Optional but looks nice)
-    style Router fill:#f96,stroke:#333,stroke-width:2px,color:white
-    style ToolSelection fill:#f96,stroke:#333,stroke-width:2px,color:white
-    style AI_AGENT fill:#e1f5fe,stroke:#01579b,stroke-width:1px
-    style SemanticSearch fill:#fff3e0,stroke:#ff9800
-    style CalcTool fill:#fff3e0,stroke:#ff9800
-    style PlantNetPlant fill:#e8f5e9,stroke:#4caf50
-    style PlantNetDisease fill:#e8f5e9,stroke:#4caf50
+    A->>A: Формування фінальної відповіді
+    A-->>B: Готовий текст (Markdown/HTML)
+    B-->>U: Відповідь у чаті
+
+---
+
+## Детальний розбір етапів:
+
+1. ### Вхідний вузол (Entry Point):
+
+   main.py та handlers.py виступають як "рецепція". Вони приймають сигнал. Якщо це фото, бот спочатку робить "пре-аналіз" через Pl@ntNet, щоб агент уже знав, на що він дивиться.
+
+2. ### Відновлення контексту (Memory Retrieval):
+
+   Перед тим як "мозок" почне думати, LangGraph звертається до MemorySaver. Він підтягує історію останніх реплік користувача. Тепер Агент знає не тільки поточне питання, а й увесь попередній діалог.
+
+3. ### Агентна логіка (The Brain):
+
+   У services.py викликається agent.ainvoke. Тут починається магія LangGraph. Агент не просто видає текст, він аналізує: "Користувач питає про добрива. У мене є інструмент fertilizer_calculator. Використаю його".
+
+4. ### Виконання дій (Tools Execution):
+
+   Інструменти в tools.py — це "руки" бота. Один іде в Vector Store за знаннями (RAG), інший — проводить математичні розрахунки.
+
+5. ### Синтез відповіді:
+
+   Отримавши дані від інструментів, модель GPT-5.4-nano перетворює сухі факти та цифри на ввічливу пораду українською мовою, додаючи застереження про безпеку. Важливо: ця нова відповідь і питання користувача автоматично записуються назад у пам'ять (checkpointer) для використання в наступних запитах.
+
+6. ### Зворотний зв'язок:
+   Aiogram отримує фінальний рядок і відправляє його користувачу, завершуючи асинхронну задачу.
 
 ---
 
