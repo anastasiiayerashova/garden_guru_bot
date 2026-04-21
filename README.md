@@ -108,43 +108,6 @@
 
 ## Схема життєвого циклу запиту в GardenGuru
 
-sequenceDiagram
-participant U as Користувач (Telegram)
-participant B as Aiogram Bot (main.py)
-participant A as LangGraph Agent (init.py)
-participant T as Tools (tools.py)
-participant V as Vision Service (Pl@ntNet)
-participant DB as Vector Store (OpenAI)
-
-    U->>B: Надсилає повідомлення (текст або фото)
-
-    alt Якщо надіслано фото
-        B->>V: Запит на ідентифікацію виду та хвороби
-        V-->>B: Результат (назва рослини + код патології)
-        B->>A: Текст + результати аналізу фото
-    else Якщо надіслано текст
-        B->>A: Передача тексту (user_input)
-    end
-
-    Note over A: Цикл "Мислення" (Reasoning)
-
-    A->>A: Чи потрібні додаткові інструменти?
-
-    opt Виклик інструментів (Acting)
-        A->>T: Виклик semantic_search або fertilizer_calc
-        T->>DB: Пошук у базі знань (якщо обрано пошук)
-        DB-->>T: Рлевантний контент
-        T-->>A: Повернення результату інструменту
-    end
-
-    A->>A: Формування фінальної відповіді
-    A-->>B: Готовий текст (Markdown/HTML)
-    B-->>U: Відповідь у чаті
-
----
-
-## Детальний розбір етапів:
-
 1. ### Вхідний вузол (Entry Point):
 
    main.py та handlers.py виступають як "рецепція". Вони приймають сигнал. Якщо це фото, бот спочатку робить "пре-аналіз" через Pl@ntNet, щоб агент уже знав, на що він дивиться.
