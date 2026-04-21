@@ -106,6 +106,56 @@
 
 ---
 
+graph TD
+%% Define Nodes (Elements)
+Start((🆕 Користувач)) -->|Надсилає повідомлення| InputMsg[Отримання запиту в Aiogram]
+
+    %% Router Logic
+    InputMsg -->|Аналіз типу повідомлення| Router{Router / handlers.py}
+
+    %% Branch 1: Commands
+    Router -->|Команда /start, /help, /calc| SimpleResp[Відправка готового тексту]
+    SimpleResp --> EndOutput
+
+    %% Branch 2: Photo (Vision)
+    Router -->|Фото рослини| VisionFlow[Завантаження фото]
+    VisionFlow --> PlantNetPlant[Pl@ntNet API: Визначення виду]
+    PlantNetPlant --> PlantNetDisease[Pl@ntNet API: Діагностика хвороби]
+    PlantNetDisease --> PrepareAgentPrompt[Формування контексту для Агента]
+    PrepareAgentPrompt --> AgentNode
+
+    %% Branch 3: Text Request (LLM)
+    Router -->|Текстове питання| AgentNode
+
+    %% LLM Core Logic (ReAct Chain via LangGraph)
+    subgraph AI_AGENT [🧠 Ядро Агента (GPT-5.4-nano)]
+        AgentNode[Аналіз запиту] -->|Мислить: Які інструменти потрібні?| ToolSelection{Вибір Інструменту}
+    end
+
+    %% Tools Interaction
+    ToolSelection -->|Потрібен RAG / знання| SemanticSearch[Semantic Search / Vector Store]
+    ToolSelection -->|Потрібні розрахунки| CalcTool[Садовий Калькулятор]
+    ToolSelection -->|Власні знання / Не по темі| GenerateResp[Формування фінальної відповіді]
+
+    %% Back to Agent
+    SemanticSearch -->|Отримано знання| AgentNode
+    CalcTool -->|Результат розрахунку| AgentNode
+    GenerateResp -->|Готова відповідь| OutputMsg[Асинхронна відповідь Aiogram]
+
+    %% Final Outputs
+    OutputMsg --> EndOutput((📤 Відповідь в Telegram))
+
+    %% Styling (Optional but looks nice)
+    style Router fill:#f96,stroke:#333,stroke-width:2px,color:white
+    style ToolSelection fill:#f96,stroke:#333,stroke-width:2px,color:white
+    style AI_AGENT fill:#e1f5fe,stroke:#01579b,stroke-width:1px
+    style SemanticSearch fill:#fff3e0,stroke:#ff9800
+    style CalcTool fill:#fff3e0,stroke:#ff9800
+    style PlantNetPlant fill:#e8f5e9,stroke:#4caf50
+    style PlantNetDisease fill:#e8f5e9,stroke:#4caf50
+
+---
+
 ## 🛠 Обробка помилок та логування
 
 У проєкті реалізована багаторівнева система відстеження подій:

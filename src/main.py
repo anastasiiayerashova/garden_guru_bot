@@ -24,7 +24,7 @@ async def main():
     telegram_token = os.getenv('TELEGRAM_TOKEN')
 
     if not telegram_token:
-        logger.error('Помилка: TELEGRAM_TOKEN не знайдено в .env файлі.')
+        logger.error('Помилка: TELEGRAM_TOKEN не знайдено в .env файлі')
         return
 
 
